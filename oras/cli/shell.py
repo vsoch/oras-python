@@ -2,6 +2,7 @@ __author__ = "Vanessa Sochat"
 __copyright__ = "Copyright 2021, Vanessa Sochat"
 __license__ = "MIT"
 
+import oras.client
 
 def main(args, parser, extra, subparser):
 
@@ -31,11 +32,8 @@ def main(args, parser, extra, subparser):
             pass
 
 
-def create_client(args):
-    from oras.main import get_client
-
-    return get_client(quiet=args.quiet)
-
+def create_client(args):   
+    return oras.client.OrasClient()
 
 def ipython(args):
     """

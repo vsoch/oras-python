@@ -6,7 +6,7 @@ __license__ = "MIT"
 
 import oras
 from oras.logger import setup_logger
-import oras.client.help as help
+import oras.cli.help as help
 import argparse
 import sys
 import os
@@ -65,9 +65,61 @@ def get_parser():
     # Login and logout share config and hostname arguments
     for command in [login, logout]:
         command.add_argument("hostname", help="hostname")
-    
+
+    # Copy command
+    copy = subparsers.add_parser("copy", description=help.copy_help)
+
+    copy_required = copy.add_argument_group("required arguments for copy")
+    copy_required.add_argument(
+        "--from",
+        dest="from_str",
+        help="source type and possible options",
+        required=True,
+    )
+    copy_required.add_argument(
+        "--to",
+        dest="to_str",
+        help="destination type and possible options",
+        required=True,
+    )
+
+    pull = subparsers.add_parser("pull", description="pull a container")
+    pull.add_argument(
+        "--allowed-media-type", help="add an allowed media type.", action="append"
+    )
+    pull.add_argument(
+        "--allow-all-media-types",
+        help="allow all media types",
+        default=False,
+        action="store_true",
+    )
+    pull.add_argument(
+        "--keep-old-files",
+        help="do not overwrite existing files.",
+        default=False,
+        action="store_true",
+    )
+    # todo we haven't added path traversal, or cacheRoot to pull
+    pull.add_argument("--output", help="output directory.", default=os.getcwd())
+    pull.add_argument("--manifest-config-ref", help="manifest config reference")
+
+    push = subparsers.add_parser("push", description=help.push_help)
+    push.add_argument("--manifest-annotations", help="manifest annotation file")
+    push.add_argument(
+        "--disable-path-validation",
+        help="skip path validation",
+        default=False,
+        action="store_true",
+    )
+    push.add_argument(
+        "-v", "--verbose", help="verbose output", default=False, action="store_true"
+    )
+    for command in push, pull:
+        command.add_argument("target", help="target")
+    push.add_argument("filerefs", help="file references", nargs="+")
+
     # Debug is added on the level of the command
-    for command in [login, logout, push]:
+    for command in login, logout, push, pull:
         command.add_argument(
             "--debug",
             dest="debug",
@@ -76,41 +128,29 @@ def get_parser():
             action="store_true",
         )
 
-    # Copy command
-    copy = subparsers.add_parser("copy", description=help.copy_help)
-    copy.add_argument("--manifest-config", help="manifest config file")
-
-    copy_required = copy.add_argument_group('required arguments for copy')
-    copy_required.add_argument("--from", dest="from_str", help="source type and possible options", required=True)
-    copy_required.add_argument("--to", dest="to_str", help="destination type and possible options", required=True)
-  
-    pull = subparsers.add_parser("pull", description="pull a container")
-
-    push = subparsers.add_parser("push", description=help.push_help)
-    push.add_argument("target", help="target")
-    push.add_argument("filerefs", help="file references", nargs="*")
-    push.add_argument("--manifest-config", help="manifest config file")
-    push.add_argument("--manifest-path-validation", help="manifest annotation file")
-    push.add_argument("--disable-path-validation", help="skip path validation", default=False, action="store_true")
-    push.add_argument("-v", "--verbose", help="verbose output", default=False, action="store_true")
-
-    for command in [push, copy]:
+    for command in push, copy:
         command.add_argument("--manifest-config", help="manifest config file")
-        command.add_argument("--plain-http", help="use plain http and not https", default=False, action="store_true")
-    
-    for command in [login, logout, push, copy]
-        command.add_argument(
-          "-c",
-          "--config",
-          dest="config",
-          help="auth config path",
-      )
 
-    # login and push share username/password, and insecure
-    for command in [login, push, copy]:     
-        command.add_argument("-u", "--username", dest="username", help="registry username")
+    # TODO this can be a list, we afren't doing anything with it yet
+    for command in login, logout, push, pull, copy:
         command.add_argument(
-        "-p", "--password", dest="password", help="registry password or identity token")
+            "-c",
+            "--config",
+            dest="config",
+            help="auth config path",
+        )
+
+    # login and push/pull share username/password, and insecure
+    for command in login, push, pull, copy:
+        command.add_argument(
+            "-u", "--username", dest="username", help="registry username"
+        )
+        command.add_argument(
+            "-p",
+            "--password",
+            dest="password",
+            help="registry password or identity token",
+        )
         command.add_argument(
             "-k",
             "--insecure",
@@ -155,7 +195,9 @@ def run():
     if args.debug:
         os.environ["MESSAGELEVEL"] = "DEBUG"
 
-    setup_logger(quiet=args.quiet, debug=args.debug, verbose=getattr(args, "verbose", False))
+    setup_logger(
+        quiet=args.quiet, debug=args.debug, verbose=getattr(args, "verbose", False)
+    )
 
     # Direct to the right parser
     if args.command == "version" or args.version:
@@ -175,10 +217,10 @@ def run():
 
     # Pass on to the correct parser
     return_code = 0
-    #try:
+    # try:
     main(args=args, parser=parser, extra=extra, subparser=helper)
     sys.exit(return_code)
-    #except UnboundLocalError:
+    # except UnboundLocalError:
     #    return_code = 1
 
     help(return_code)

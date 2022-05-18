@@ -172,13 +172,13 @@ def setup_logger(
         nocolor=nocolor,
         stream=sys.stdout if stdout else sys.stderr,
         use_threads=use_threads,
-    )   
+    )
     level = _logging.INFO
     if verbose:
         level = _logging.VERBOSE
     elif debug:
         level = _logging.DEBUG
-        
+
     logger.set_stream_handler(stream_handler)
     logger.set_level(level)
     logger.quiet = quiet

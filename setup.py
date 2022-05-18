@@ -98,5 +98,5 @@ if __name__ == "__main__":
             "Operating System :: Unix",
             "Programming Language :: Python :: 3.3",
         ],
-        entry_points={"console_scripts": ["oras-py=oras.client:run"]},
+        entry_points={"console_scripts": ["oras-py=oras.cli:run"]},
     )

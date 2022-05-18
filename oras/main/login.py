@@ -1,5 +1,5 @@
 __author__ = "Vanessa Sochat"
-__copyright__ = "Copyright 2021, Vanessa Sochat"
+__copyright__ = "Copyright 2021-2022, Vanessa Sochat"
 __license__ = "MIT"
 
 from oras.logger import logger
@@ -7,21 +7,23 @@ import docker
 import sys
 
 
-def readline():
-    """Read lines from stdin"""
-    content = sys.stdin.readlines()
-    return content[0].strip()
+def login(
+    username=None,
+    password=None,
+    password_stdin=False,
+    insecure=False,
+    hostname=None,
+    config_path=None,
+):
+    """
+    Login to an OCI registry.
 
-
-def main(args, parser, extra, subparser):
-
-    client = docker.DockerClient(tls=not args.insecure)
-
-    password = args.password
-    username = args.username
+    The username and password can come from stdin.
+    """
+    client = docker.DockerClient(tls=not insecure)
 
     # Read password from stdin
-    if args.password_stdin:
+    if password_stdin:
         password = readline()
 
     # No password provided
@@ -33,7 +35,6 @@ def main(args, parser, extra, subparser):
 
         # if we still don't have a username, we require a token
         if not username:
-            prompt = "Token: "
             password = input("Token: ")
             if not password:
                 logger.exit("token required")
@@ -52,6 +53,17 @@ def main(args, parser, extra, subparser):
     # Login
     # https://docker-py.readthedocs.io/en/stable/client.html?highlight=login#docker.client.DockerClient.login
     result = client.login(
-        username=username, password=password, registry=args.hostname, dockercfg_path=args.config
+        username=username,
+        password=password,
+        registry=hostname,
+        dockercfg_path=config_path,
     )
     logger.info(result["Status"])
+
+
+def readline():
+    """
+    Read lines from stdin
+    """
+    content = sys.stdin.readlines()
+    return content[0].strip()
